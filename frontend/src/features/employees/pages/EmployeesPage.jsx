@@ -28,7 +28,9 @@ import {
   Receipt,
   Image as ImageIcon,
   CloudUpload,
+  Loader2,
 } from "lucide-react";
+import { uploadImageFile } from "../../common/upload.api";
 
 const EmployeesPage = () => {
   const { addToast } = useToast();
@@ -55,6 +57,7 @@ const EmployeesPage = () => {
     role: "employee",
   });
   const [submittingForm, setSubmittingForm] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const fetchEmployees = async () => {
     setLoading(true);
@@ -105,18 +108,32 @@ const EmployeesPage = () => {
     setShowFormModal(true);
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        addToast("Profile picture must be under 2MB", "warning");
-        return;
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      addToast("Profile picture must be under 5MB", "warning");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const uploaded = await uploadImageFile(file, "/employees");
+      if (uploaded?.url) {
+        setEmpForm((prev) => ({ ...prev, profileImage: uploaded.url }));
+        addToast("Profile photo uploaded to ImageKit CDN", "success");
       }
+    } catch (err) {
+      console.error("Profile photo upload error:", err);
       const reader = new FileReader();
       reader.onloadend = () => {
         setEmpForm((prev) => ({ ...prev, profileImage: reader.result }));
       };
       reader.readAsDataURL(file);
+      addToast(err.message || "Failed to upload to ImageKit", "error");
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
@@ -431,8 +448,13 @@ const EmployeesPage = () => {
               </span>
             </div>
             <div className="flex items-center gap-3 p-3 bg-slate-50 border border-dashed border-slate-300 rounded-xl">
-              {empForm.profileImage ? (
-                <div className="relative group">
+              {uploadingPhoto ? (
+                <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-200 flex flex-col items-center justify-center text-teal-600 shrink-0">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="text-[8px] font-bold mt-0.5">Uploading</span>
+                </div>
+              ) : empForm.profileImage ? (
+                <div className="relative group shrink-0">
                   <img
                     src={empForm.profileImage}
                     alt="Preview"
@@ -448,7 +470,7 @@ const EmployeesPage = () => {
                   </button>
                 </div>
               ) : (
-                <div className="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center text-slate-400">
+                <div className="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center text-slate-400 shrink-0">
                   <ImageIcon className="w-5 h-5" />
                 </div>
               )}
@@ -456,11 +478,16 @@ const EmployeesPage = () => {
                 <input
                   type="file"
                   accept="image/*"
+                  disabled={uploadingPhoto}
                   onChange={handleImageChange}
-                  className="text-xs text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
+                  className="text-xs text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 disabled:opacity-50"
                 />
                 <p className="text-[10px] text-slate-400">
-                  Max 2MB. Profile photos uploaded directly to ImageKit cloud CDN.
+                  {uploadingPhoto
+                    ? "Uploading photo via Multer to ImageKit..."
+                    : empForm.profileImage?.startsWith("http")
+                    ? "✓ Profile photo hosted on ImageKit CDN"
+                    : "Max 5MB. Uploads via Multer directly to ImageKit."}
                 </p>
               </div>
             </div>

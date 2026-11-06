@@ -27,7 +27,9 @@ import {
   CheckCircle2,
   Clock,
   CloudUpload,
+  Loader2,
 } from "lucide-react";
+import { uploadImageFile } from "../../common/upload.api";
 
 const MedicinesPage = () => {
   const { addToast } = useToast();
@@ -43,6 +45,7 @@ const MedicinesPage = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMedicine, setEditingMedicine] = useState(null);
   const [formSubmitting, setFormSubmitting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [addInitialStock, setAddInitialStock] = useState(false);
   const [initialStockData, setInitialStockData] = useState({
     initialQuantity: "100",
@@ -155,19 +158,35 @@ const MedicinesPage = () => {
     setIsFormOpen(true);
   };
 
-  // Image Upload Handler (converts to base64 for ImageKit SDK upload)
-  const handleImageFileChange = (e) => {
+  // Image Upload Handler using Multer & ImageKit CDN
+  const handleImageFileChange = async (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        addToast("Image size must be less than 2MB", "warning");
-        return;
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      addToast("Image size must be less than 5MB", "warning");
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      // Direct Multer multipart upload to ImageKit
+      const uploaded = await uploadImageFile(file, "/medicines");
+      if (uploaded?.url) {
+        setFormData((prev) => ({ ...prev, image: uploaded.url }));
+        addToast("Image successfully uploaded to ImageKit CDN", "success");
       }
+    } catch (err) {
+      console.error("ImageKit upload error:", err);
+      // Graceful local preview fallback
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData((prev) => ({ ...prev, image: reader.result }));
       };
       reader.readAsDataURL(file);
+      addToast(err.message || "Failed to upload image to ImageKit", "error");
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -612,8 +631,13 @@ const MedicinesPage = () => {
               </span>
             </div>
             <div className="flex items-center gap-4 p-3 border border-dashed border-slate-300 rounded-xl bg-slate-50">
-              {formData.image ? (
-                <div className="relative group">
+              {uploadingImage ? (
+                <div className="w-14 h-14 rounded-lg bg-teal-50 border border-teal-200 flex flex-col items-center justify-center text-teal-600 shrink-0">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="text-[8px] font-bold mt-1">Uploading...</span>
+                </div>
+              ) : formData.image ? (
+                <div className="relative group shrink-0">
                   <img
                     src={formData.image}
                     alt="Preview"
@@ -629,7 +653,7 @@ const MedicinesPage = () => {
                   </button>
                 </div>
               ) : (
-                <div className="w-14 h-14 rounded-lg bg-slate-200 flex items-center justify-center text-slate-400">
+                <div className="w-14 h-14 rounded-lg bg-slate-200 flex items-center justify-center text-slate-400 shrink-0">
                   <ImageIcon className="w-6 h-6" />
                 </div>
               )}
@@ -637,11 +661,16 @@ const MedicinesPage = () => {
                 <input
                   type="file"
                   accept="image/*"
+                  disabled={uploadingImage}
                   onChange={handleImageFileChange}
-                  className="text-xs text-slate-600 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
+                  className="text-xs text-slate-600 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 disabled:opacity-50"
                 />
                 <p className="text-[10px] text-slate-400">
-                  PNG, JPG or WEBP up to 2MB. Direct secure upload to ImageKit Media Storage.
+                  {uploadingImage
+                    ? "Uploading file via Multer to ImageKit..."
+                    : formData.image?.startsWith("http")
+                    ? "✓ Saved & hosted on ImageKit CDN"
+                    : "PNG, JPG or WEBP up to 5MB. Uploads via Multer to ImageKit."}
                 </p>
               </div>
             </div>

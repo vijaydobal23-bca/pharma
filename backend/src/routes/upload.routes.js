@@ -1,15 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
+const upload = require('../middlewares/upload.middleware');
 const { uploadImage, getAuthParams, isConfigured } = require('../services/imagekit.service');
 const { authenticateToken } = require('../middlewares/auth.middleware');
-
-// Memory storage for multer
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-});
 
 router.use(authenticateToken);
 
@@ -26,18 +19,20 @@ router.get('/auth', (req, res) => {
 });
 
 /**
- * Direct file or base64 upload to ImageKit
+ * Direct file or base64 upload to ImageKit via Multer
  */
-router.post('/', upload.single('file'), async (req, res) => {
+router.post('/', upload.any(), async (req, res) => {
   try {
     let fileData;
     let fileName = 'upload.jpg';
     const folder = req.body.folder || '/pharma';
 
-    if (req.file) {
+    const uploadedFile = req.file || (req.files && req.files.length > 0 ? req.files[0] : null);
+
+    if (uploadedFile) {
       // Buffer from multer
-      fileData = req.file.buffer;
-      fileName = req.file.originalname || `file_${Date.now()}.jpg`;
+      fileData = uploadedFile.buffer;
+      fileName = uploadedFile.originalname || `file_${Date.now()}.jpg`;
     } else if (req.body.image) {
       // Base64 string from JSON body
       fileData = req.body.image;

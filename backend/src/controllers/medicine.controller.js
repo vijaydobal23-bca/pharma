@@ -183,11 +183,16 @@ const createMedicine = async (req, res) => {
       });
     }
 
-    // Handle ImageKit upload if image is provided as base64/data URI
+    // Handle Multer binary file upload or base64/url ImageKit upload
     let imageUrl = image || '';
     let imageFileId = '';
 
-    if (image && image.startsWith('data:image')) {
+    if (req.file) {
+      const safeName = name ? name.toLowerCase().replace(/\s+/g, '_') : 'med';
+      const uploadRes = await uploadImage(req.file.buffer, `${safeName}_${Date.now()}.jpg`, '/medicines');
+      imageUrl = uploadRes.url;
+      imageFileId = uploadRes.fileId;
+    } else if (image && image.startsWith('data:image')) {
       const uploadRes = await uploadImage(image, `${name.toLowerCase().replace(/\s+/g, '_')}.jpg`, '/medicines');
       imageUrl = uploadRes.url;
       imageFileId = uploadRes.fileId;
@@ -298,12 +303,16 @@ const updateMedicine = async (req, res) => {
     const { id } = req.params;
     const updateData = { ...req.body };
 
-    if (updateData.image && updateData.image.startsWith('data:image')) {
+    if (req.file) {
+      const uploadRes = await uploadImage(req.file.buffer, `med_${id}_${Date.now()}.jpg`, '/medicines');
+      updateData.image = uploadRes.url;
+      updateData.imageFileId = uploadRes.fileId;
+    } else if (updateData.image && updateData.image.startsWith('data:image')) {
       const uploadRes = await uploadImage(updateData.image, `med_${id}.jpg`, '/medicines');
       updateData.image = uploadRes.url;
       updateData.imageFileId = uploadRes.fileId;
     }
-
+ 
     const medicine = await Medicine.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true,

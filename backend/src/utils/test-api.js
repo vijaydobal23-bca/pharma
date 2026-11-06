@@ -279,6 +279,28 @@ const runTests = async () => {
       newMedRes.initialBatch?.quantity
     );
 
+    // 17. Multer Multipart/Form-Data Image Upload to ImageKit Test
+    const pixelBuffer = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+    const multerForm = new FormData();
+    const pixelBlob = new Blob([pixelBuffer], { type: 'image/png' });
+    multerForm.append('file', pixelBlob, 'sample_capsule.png');
+    multerForm.append('folder', '/medicines_multer');
+
+    const multerUploadRes = await fetch(`${BASE_URL}/api/upload`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${employeeToken}`,
+      },
+      body: multerForm,
+    }).then((r) => r.json());
+
+    console.log(
+      '✓ Multer Multipart Upload to ImageKit:',
+      multerUploadRes.success ? 'PASSED' : 'FAILED',
+      'CDN URL:',
+      multerUploadRes.data?.url
+    );
+
     console.log('\n======================================================');
     console.log('ALL INTEGRATION TESTS PASSED WITH 100% SUCCESS!');
     console.log('======================================================\n');

@@ -78,7 +78,14 @@ const createEmployee = async (req, res) => {
     }
 
     let finalImageUrl = profileImage || '';
-    if (profileImage && profileImage.startsWith('data:image')) {
+    if (req.file) {
+      const uploadRes = await uploadImage(
+        req.file.buffer,
+        `emp_${Date.now()}_${req.file.originalname || 'avatar.jpg'}`,
+        '/employees'
+      );
+      finalImageUrl = uploadRes.url;
+    } else if (profileImage && profileImage.startsWith('data:image')) {
       const uploadRes = await uploadImage(
         profileImage,
         `emp_${Date.now()}.jpg`,
@@ -133,7 +140,14 @@ const updateEmployee = async (req, res) => {
     if (isActive !== undefined) updateFields.isActive = isActive;
     if (role) updateFields.role = role;
 
-    if (profileImage && profileImage.startsWith('data:image')) {
+    if (req.file) {
+      const uploadRes = await uploadImage(
+        req.file.buffer,
+        `emp_${id}_${Date.now()}.jpg`,
+        '/employees'
+      );
+      updateFields.profileImage = uploadRes.url;
+    } else if (profileImage && profileImage.startsWith('data:image')) {
       const uploadRes = await uploadImage(profileImage, `emp_${id}.jpg`, '/employees');
       updateFields.profileImage = uploadRes.url;
     }
