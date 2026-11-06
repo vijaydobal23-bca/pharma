@@ -209,20 +209,18 @@ const adjustStock = async ({
 
 /**
  * Fetch Low-Stock and Expiring Batch Alerts
+ * @param {number} daysThreshold - Number of days to check for near-expiry (e.g. 30 or 60 days)
  */
-const getInventoryAlerts = async () => {
+const getInventoryAlerts = async (daysThreshold = 60) => {
   const now = new Date();
-  const thirtyDaysFromNow = new Date();
-  thirtyDaysFromNow.setDate(now.getDate() + 30);
+  const thresholdDaysFromNow = new Date();
+  thresholdDaysFromNow.setDate(thresholdDaysFromNow.getDate() + Number(daysThreshold));
 
-  const sixtyDaysFromNow = new Date();
-  sixtyDaysFromNow.setDate(now.getDate() + 60);
-
-  // Expiring soon batches (within 60 days)
+  // Expiring soon batches (strictly between now and thresholdDays, e.g. within 30 days)
   const expiringBatches = await InventoryBatch.find({
     status: 'active',
     quantity: { $gt: 0 },
-    expiryDate: { $lte: sixtyDaysFromNow },
+    expiryDate: { $gte: now, $lte: thresholdDaysFromNow },
   })
     .populate('medicine', 'name category unit')
     .sort({ expiryDate: 1 });
@@ -272,3 +270,4 @@ module.exports = {
   adjustStock,
   getInventoryAlerts,
 };
+

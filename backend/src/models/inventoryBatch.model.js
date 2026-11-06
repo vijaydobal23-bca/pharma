@@ -82,3 +82,4 @@ inventoryBatchSchema.index({ medicine: 1, status: 1, quantity: 1, expiryDate: 1 
 const InventoryBatch = mongoose.model('InventoryBatch', inventoryBatchSchema);
 
 module.exports = InventoryBatch;
+

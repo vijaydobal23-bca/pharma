@@ -44,3 +44,4 @@ employeeActivitySchema.index({ createdAt: -1 });
 const EmployeeActivity = mongoose.model('EmployeeActivity', employeeActivitySchema);
 
 module.exports = EmployeeActivity;
+

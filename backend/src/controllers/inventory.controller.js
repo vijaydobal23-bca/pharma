@@ -26,9 +26,10 @@ const getAllBatches = async (req, res) => {
     }
 
     if (expiringWithinDays) {
+      const now = new Date();
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() + Number(expiringWithinDays));
-      query.expiryDate = { $lte: targetDate };
+      query.expiryDate = { $gte: now, $lte: targetDate };
       query.quantity = { $gt: 0 };
     }
 
@@ -74,14 +75,16 @@ const getAllBatches = async (req, res) => {
 
 /**
  * Add a new Stock Batch directly
+ * Supports both calendar expiryDate and expiry in days (e.g. expiryDays: 30)
  */
 const addStockBatch = async (req, res) => {
   try {
-    const {
+    let {
       medicineId,
       batchNumber,
       manufacturingDate,
       expiryDate,
+      expiryDays,
       purchasePrice,
       sellingPrice,
       quantity,
@@ -90,10 +93,20 @@ const addStockBatch = async (req, res) => {
       location,
     } = req.body;
 
+    // If expiryDays was supplied (e.g. 30, "30", or "30days"), calculate absolute expiryDate
+    if (expiryDays !== undefined && expiryDays !== null && expiryDays !== '') {
+      const parsedDays = parseInt(String(expiryDays).replace(/[^0-9]/g, ''), 10);
+      if (!isNaN(parsedDays) && parsedDays > 0) {
+        const calculatedDate = new Date();
+        calculatedDate.setDate(calculatedDate.getDate() + parsedDays);
+        expiryDate = calculatedDate.toISOString();
+      }
+    }
+
     if (!medicineId || !batchNumber || !expiryDate || quantity === undefined || purchasePrice === undefined || sellingPrice === undefined) {
       return res.status(400).json({
         success: false,
-        message: 'Medicine, batch number, expiry date, quantity, purchase price, and selling price are required',
+        message: 'Medicine, batch number, expiry date (or expiry in days, e.g. 30 days), quantity, purchase price, and selling price are required',
       });
     }
 
@@ -102,18 +115,28 @@ const addStockBatch = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Medicine not found' });
     }
 
-    if (new Date(expiryDate) <= new Date()) {
+    const targetExpiry = new Date(expiryDate);
+    if (isNaN(targetExpiry.getTime())) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot add a batch with past expiry date',
+        message: 'Invalid expiry date format. Please specify a valid date or days (e.g. 30).',
       });
     }
+
+    if (targetExpiry <= new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot add a batch with past expiry date. Expiry must be in the future.',
+      });
+    }
+
+    const daysUntilExpiry = Math.ceil((targetExpiry - new Date()) / (1000 * 60 * 60 * 24));
 
     const batch = await InventoryBatch.create({
       medicine: medicineId,
       batchNumber: batchNumber.trim(),
       manufacturingDate: manufacturingDate || null,
-      expiryDate: new Date(expiryDate),
+      expiryDate: targetExpiry,
       purchasePrice: Number(purchasePrice),
       sellingPrice: Number(sellingPrice),
       initialQuantity: Number(quantity),
@@ -134,7 +157,7 @@ const addStockBatch = async (req, res) => {
       quantity: Number(quantity),
       previousStock: 0,
       newStock: Number(quantity),
-      reason: 'Manual Batch Entry',
+      reason: `Batch Entry (${daysUntilExpiry} days shelf life)`,
       referenceId: batch.batchNumber,
       performedBy: req.user?._id || req.user?.id,
       performedByName: req.user?.name || 'Staff',
@@ -142,8 +165,11 @@ const addStockBatch = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Batch added successfully',
-      data: batch,
+      message: `Batch added successfully (Expires in ${daysUntilExpiry} days on ${targetExpiry.toLocaleDateString()})`,
+      data: {
+        ...batch.toObject(),
+        daysUntilExpiry,
+      },
     });
   } catch (error) {
     console.error('Add Batch Error:', error);
@@ -160,7 +186,19 @@ const addStockBatch = async (req, res) => {
 const updateBatch = async (req, res) => {
   try {
     const { id } = req.params;
-    const batch = await InventoryBatch.findByIdAndUpdate(id, req.body, { new: true });
+    const updateData = { ...req.body };
+
+    // If expiryDays was supplied in update, calculate expiryDate
+    if (updateData.expiryDays !== undefined && updateData.expiryDays !== null && updateData.expiryDays !== '') {
+      const parsedDays = parseInt(String(updateData.expiryDays).replace(/[^0-9]/g, ''), 10);
+      if (!isNaN(parsedDays) && parsedDays > 0) {
+        const calculatedDate = new Date();
+        calculatedDate.setDate(calculatedDate.getDate() + parsedDays);
+        updateData.expiryDate = calculatedDate;
+      }
+    }
+
+    const batch = await InventoryBatch.findByIdAndUpdate(id, updateData, { new: true });
     if (!batch) {
       return res.status(404).json({ success: false, message: 'Batch not found' });
     }
@@ -212,11 +250,12 @@ const adjustStock = async (req, res) => {
 };
 
 /**
- * Get Low-Stock, Out-of-Stock, and Expiring Alerts
+ * Get Low-Stock, Out-of-Stock, and Expiring Alerts (configurable days, e.g. 30 or 60 days)
  */
 const getAlerts = async (req, res) => {
   try {
-    const alerts = await inventoryService.getInventoryAlerts();
+    const daysThreshold = req.query.days ? Number(req.query.days) : 60;
+    const alerts = await inventoryService.getInventoryAlerts(daysThreshold);
     return res.status(200).json({
       success: true,
       data: alerts,
@@ -272,3 +311,4 @@ module.exports = {
   getAlerts,
   getStockMovements,
 };
+

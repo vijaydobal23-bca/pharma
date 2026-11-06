@@ -15,3 +15,4 @@ router.put('/batches/:id', authorize('employee', 'admin'), inventoryController.u
 router.post('/adjust', authorize('employee', 'admin'), inventoryController.adjustStock);
 
 module.exports = router;
+

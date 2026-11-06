@@ -49,3 +49,4 @@ supplierSchema.index({ name: 1, phone: 1 });
 const Supplier = mongoose.model('Supplier', supplierSchema);
 
 module.exports = Supplier;
+

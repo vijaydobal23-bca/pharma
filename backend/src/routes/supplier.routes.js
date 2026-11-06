@@ -12,3 +12,4 @@ router.put('/:id', authorize('employee', 'admin'), supplierController.updateSupp
 router.delete('/:id', authorize('employee', 'admin'), supplierController.deleteSupplier);
 
 module.exports = router;
+

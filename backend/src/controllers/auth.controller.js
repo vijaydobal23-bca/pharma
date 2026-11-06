@@ -54,7 +54,6 @@ const register = async (req, res) => {
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
-   t
     user.refreshToken = refreshToken;
     await user.save();
 

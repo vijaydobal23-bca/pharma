@@ -1,5 +1,6 @@
 const Medicine = require('../models/medicine.model');
 const InventoryBatch = require('../models/inventoryBatch.model');
+const StockMovement = require('../models/stockMovement.model');
 const Category = require('../models/category.model');
 const { uploadImage } = require('../services/imagekit.service');
 
@@ -215,10 +216,70 @@ const createMedicine = async (req, res) => {
       { upsert: true }
     );
 
+    // Optional: create initial stock batch if employee provided initial stock info
+    const { initialQuantity, initialBatchNumber, expiryDays, expiryDate: initExpiryDate } = req.body;
+    let initialBatchCreated = null;
+
+    if (initialQuantity && Number(initialQuantity) > 0) {
+      let targetExpiry = null;
+      if (expiryDays !== undefined && expiryDays !== null && expiryDays !== '') {
+        const days = parseInt(String(expiryDays).replace(/[^0-9]/g, ''), 10);
+        if (!isNaN(days) && days > 0) {
+          const calcDate = new Date();
+          calcDate.setDate(calcDate.getDate() + days);
+          targetExpiry = calcDate;
+        }
+      } else if (initExpiryDate) {
+        targetExpiry = new Date(initExpiryDate);
+      }
+
+      // Default to 365 days if not specified but quantity was given
+      if (!targetExpiry) {
+        const defDate = new Date();
+        defDate.setDate(defDate.getDate() + 365);
+        targetExpiry = defDate;
+      }
+
+      if (targetExpiry > new Date()) {
+        const batchNo = (initialBatchNumber || `BTH-${Date.now().toString().slice(-6)}`).trim();
+        const daysLeft = Math.ceil((targetExpiry - new Date()) / (1000 * 60 * 60 * 24));
+
+        initialBatchCreated = await InventoryBatch.create({
+          medicine: medicine._id,
+          batchNumber: batchNo,
+          expiryDate: targetExpiry,
+          purchasePrice: Number(purchasePrice),
+          sellingPrice: Number(sellingPrice),
+          initialQuantity: Number(initialQuantity),
+          quantity: Number(initialQuantity),
+          status: 'active',
+          location: 'Aisle 1',
+        });
+
+        await StockMovement.create({
+          medicine: medicine._id,
+          medicineName: medicine.name,
+          batch: initialBatchCreated._id,
+          batchNumber: initialBatchCreated.batchNumber,
+          type: 'PURCHASE_RECEIVE',
+          quantity: Number(initialQuantity),
+          previousStock: 0,
+          newStock: Number(initialQuantity),
+          reason: `Initial Stock Registration (${daysLeft} days expiry)`,
+          referenceId: initialBatchCreated.batchNumber,
+          performedBy: req.user?._id || req.user?.id,
+          performedByName: req.user?.name || 'Staff',
+        });
+      }
+    }
+
     return res.status(201).json({
       success: true,
-      message: 'Medicine created successfully',
+      message: initialBatchCreated
+        ? `Medicine & initial batch created successfully with ${initialBatchCreated.quantity} units (Expires in ${Math.ceil((initialBatchCreated.expiryDate - new Date()) / (1000 * 60 * 60 * 24))} days)`
+        : 'Medicine created successfully',
       data: medicine,
+      initialBatch: initialBatchCreated,
     });
   } catch (error) {
     console.error('Create Medicine Error:', error);
@@ -332,3 +393,4 @@ module.exports = {
   deleteMedicine,
   getFiltersData,
 };
+

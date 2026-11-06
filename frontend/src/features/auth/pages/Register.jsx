@@ -8,7 +8,7 @@ const Register = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "user",
+    role: "employee",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState("");
@@ -152,7 +152,7 @@ const Register = () => {
                 onChange={handleChange}
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-slate-800 text-sm transition-all bg-white"
               >
-                <option value="user">Pharmacist / Staff Member</option>
+                <option value="employee">Pharmacist / Staff Member</option>
                 <option value="admin">Pharmacy Administrator</option>
               </select>
             </div>

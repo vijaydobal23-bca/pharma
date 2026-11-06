@@ -81,3 +81,4 @@ medicineSchema.index({ name: 'text', composition: 'text', manufacturer: 'text' }
 const Medicine = mongoose.model('Medicine', medicineSchema);
 
 module.exports = Medicine;
+

@@ -1,20 +1,21 @@
 const ImageKit = require('imagekit');
 
-const isConfigured = Boolean(
-  process.env.IMAGEKIT_PUBLIC_KEY &&
-  process.env.IMAGEKIT_PRIVATE_KEY &&
-  process.env.IMAGEKIT_URL_ENDPOINT
-);
+const publicKey = (process.env.IMAGEKIT_PUBLIC_KEY || '').trim();
+const privateKey = (process.env.IMAGEKIT_PRIVATE_KEY || '').trim();
+const urlEndpoint = (process.env.IMAGEKIT_URL_ENDPOINT || process.env.IMAGEKIT_ENDPOINT || '').trim();
+
+const isConfigured = Boolean(publicKey && privateKey && urlEndpoint);
 
 let imagekit = null;
 
 if (isConfigured) {
   try {
     imagekit = new ImageKit({
-      publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
-      privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
-      urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
+      publicKey,
+      privateKey,
+      urlEndpoint,
     });
+    console.log('✓ ImageKit SDK successfully initialized for:', urlEndpoint);
   } catch (error) {
     console.warn('ImageKit initialization warning:', error.message);
   }
@@ -23,4 +24,7 @@ if (isConfigured) {
 module.exports = {
   imagekit,
   isConfigured,
+  publicKey,
+  urlEndpoint,
 };
+

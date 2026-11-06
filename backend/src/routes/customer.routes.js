@@ -13,3 +13,4 @@ router.post('/', authorize('employee', 'admin'), customerController.createCustom
 router.put('/:id', authorize('employee', 'admin'), customerController.updateCustomer);
 
 module.exports = router;
+

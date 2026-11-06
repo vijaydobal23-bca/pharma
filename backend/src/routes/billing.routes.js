@@ -14,3 +14,4 @@ router.post('/sales/:id/cancel', authorize('employee', 'admin'), billingControll
 router.post('/sales/:id/return', authorize('employee', 'admin'), billingController.processReturn);
 
 module.exports = router;
+

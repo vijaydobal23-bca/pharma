@@ -12,3 +12,4 @@ router.put('/:id', authorize('employee', 'admin'), categoryController.updateCate
 router.delete('/:id', authorize('employee', 'admin'), categoryController.deleteCategory);
 
 module.exports = router;
+

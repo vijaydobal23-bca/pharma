@@ -1,10 +1,27 @@
-const { imagekit, isConfigured } = require('../config/imagekit');
+const { imagekit, isConfigured, publicKey, urlEndpoint } = require('../config/imagekit');
 
 /**
- * Upload an image file (Buffer or Base64 string) to ImageKit
- * If ImageKit is not configured or fails, falls back gracefully.
+ * Upload image to ImageKit CDN
+ * Accepts base64 data string, binary Buffer, or remote URL
  */
 const uploadImage = async (fileData, fileName = 'upload.jpg', folder = '/pharma') => {
+  if (!fileData) {
+    return {
+      url: '',
+      fileId: '',
+      thumbnailUrl: '',
+    };
+  }
+
+  // If already a remote CDN / HTTP URL and not base64, preserve it
+  if (typeof fileData === 'string' && (fileData.startsWith('http://') || fileData.startsWith('https://'))) {
+    return {
+      url: fileData,
+      fileId: null,
+      thumbnailUrl: fileData,
+    };
+  }
+
   if (isConfigured && imagekit) {
     try {
       const response = await imagekit.upload({
@@ -16,15 +33,14 @@ const uploadImage = async (fileData, fileName = 'upload.jpg', folder = '/pharma'
       return {
         url: response.url,
         fileId: response.fileId,
-        thumbnailUrl: response.thumbnailUrl,
+        thumbnailUrl: response.thumbnailUrl || response.url,
       };
     } catch (error) {
       console.error('ImageKit upload error:', error.message);
-      // Fallback if ImageKit error occurs
     }
   }
 
-  // Graceful fallback for environments without live ImageKit keys
+  // Graceful fallback for local environments if ImageKit throws network error
   if (typeof fileData === 'string' && fileData.startsWith('data:image')) {
     return {
       url: fileData,
@@ -33,7 +49,7 @@ const uploadImage = async (fileData, fileName = 'upload.jpg', folder = '/pharma'
     };
   }
 
-  // Fallback placeholder
+  // Default fallback medical placeholder
   return {
     url: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400&auto=format&fit=crop&q=80',
     fileId: `fallback_${Date.now()}`,
@@ -62,12 +78,19 @@ const deleteImage = async (fileId) => {
  */
 const getAuthParams = () => {
   if (isConfigured && imagekit) {
-    return imagekit.getAuthenticationParameters();
+    const auth = imagekit.getAuthenticationParameters();
+    return {
+      ...auth,
+      publicKey,
+      urlEndpoint,
+    };
   }
   return {
     token: 'mock_token',
     expire: Date.now() + 3600,
     signature: 'mock_signature',
+    publicKey: '',
+    urlEndpoint: '',
   };
 };
 
@@ -75,4 +98,6 @@ module.exports = {
   uploadImage,
   deleteImage,
   getAuthParams,
+  isConfigured,
 };
+

@@ -2,7 +2,6 @@ const Medicine = require('../models/medicine.model');
 const Category = require('../models/category.model');
 const User = require('../models/user.model');
 const Sale = require('../models/sale.model');
-const Purchase = require('../models/purchase.model');
 const InventoryBatch = require('../models/inventoryBatch.model');
 const inventoryService = require('../services/inventory.service');
 
@@ -116,9 +115,8 @@ const getAdminDashboard = async (req, res) => {
       sales: t.count,
     }));
 
-    // 5. Recent Transactions and Recent Purchases
+    // 5. Recent Transactions
     const recentSales = await Sale.find().sort({ createdAt: -1 }).limit(8);
-    const recentPurchases = await Purchase.find().sort({ createdAt: -1 }).limit(6);
 
     return res.status(200).json({
       success: true,
@@ -143,7 +141,6 @@ const getAdminDashboard = async (req, res) => {
           expiringBatches: alerts.expiringBatches.slice(0, 10),
         },
         recentSales,
-        recentPurchases,
         filterInfo: {
           period,
           startDate: filterStart,
@@ -206,3 +203,4 @@ module.exports = {
   getAdminDashboard,
   getEmployeeDashboard,
 };
+

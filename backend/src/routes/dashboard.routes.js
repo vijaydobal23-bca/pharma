@@ -13,3 +13,4 @@ router.get('/admin', authorize('admin'), dashboardController.getAdminDashboard);
 router.get('/employee', authorize('employee', 'admin'), dashboardController.getEmployeeDashboard);
 
 module.exports = router;
+

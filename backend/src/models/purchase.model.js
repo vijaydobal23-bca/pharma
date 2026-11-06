@@ -133,3 +133,4 @@ purchaseSchema.index({ createdAt: -1 });
 const Purchase = mongoose.model('Purchase', purchaseSchema);
 
 module.exports = Purchase;
+

@@ -14,3 +14,4 @@ router.patch('/:id/toggle-status', authorize('admin'), employeeController.toggle
 router.get('/:id/activity', authorize('admin'), employeeController.getEmployeeActivity);
 
 module.exports = router;
+

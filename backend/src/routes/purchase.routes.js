@@ -14,3 +14,4 @@ router.post('/:id/receive', authorize('employee', 'admin'), purchaseController.r
 router.post('/:id/cancel', authorize('employee', 'admin'), purchaseController.cancelPurchase);
 
 module.exports = router;
+

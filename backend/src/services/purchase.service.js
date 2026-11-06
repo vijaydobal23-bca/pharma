@@ -198,3 +198,4 @@ module.exports = {
   receivePurchaseStock,
   generatePurchaseOrderNumber,
 };
+

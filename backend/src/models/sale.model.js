@@ -167,3 +167,4 @@ saleSchema.index({ customerPhone: 1 });
 const Sale = mongoose.model('Sale', saleSchema);
 
 module.exports = Sale;
+

@@ -17,3 +17,4 @@ router.put('/:id', authorize('employee', 'admin'), medicineController.updateMedi
 router.delete('/:id', authorize('employee', 'admin'), medicineController.deleteMedicine);
 
 module.exports = router;
+

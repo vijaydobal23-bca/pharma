@@ -1,7 +1,6 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/user.model');
 const Sale = require('../models/sale.model');
-const Purchase = require('../models/purchase.model');
 const EmployeeActivity = require('../models/employeeActivity.model');
 const { uploadImage } = require('../services/imagekit.service');
 
@@ -26,15 +25,13 @@ const getAllEmployees = async (req, res) => {
       .select('-password -refreshToken')
       .sort({ createdAt: -1 });
 
-    // Enrich with total sales and purchases metrics
+    // Enrich with total sales metrics
     const enriched = await Promise.all(
       employees.map(async (emp) => {
         const salesCount = await Sale.countDocuments({ soldBy: emp._id, status: 'completed' });
-        const purchaseCount = await Purchase.countDocuments({ createdBy: emp._id });
         return {
           ...emp.toObject(),
           salesCount,
-          purchaseCount,
         };
       })
     );
@@ -207,7 +204,6 @@ const getEmployeeActivity = async (req, res) => {
     }
 
     const sales = await Sale.find({ soldBy: id }).sort({ createdAt: -1 }).limit(25);
-    const purchases = await Purchase.find({ createdBy: id }).sort({ createdAt: -1 }).limit(25);
     const auditLogs = await EmployeeActivity.find({ user: id }).sort({ createdAt: -1 }).limit(50);
 
     const totalSalesAmount = sales
@@ -220,9 +216,7 @@ const getEmployeeActivity = async (req, res) => {
         employee,
         totalSalesAmount: Number(totalSalesAmount.toFixed(2)),
         totalSalesCount: sales.length,
-        totalPurchasesCount: purchases.length,
         recentSales: sales,
-        recentPurchases: purchases,
         auditLogs,
       },
     });
@@ -241,3 +235,4 @@ module.exports = {
   toggleEmployeeStatus,
   getEmployeeActivity,
 };
+
