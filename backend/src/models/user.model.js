@@ -27,8 +27,35 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
-      default: 'user',
+      enum: ['user', 'admin', 'employee'],
+      default: 'employee',
+    },
+    phone: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    address: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    profileImage: {
+      type: String,
+      default: '',
+    },
+    joiningDate: {
+      type: Date,
+      default: Date.now,
+    },
+    status: {
+      type: String,
+      enum: ['active', 'inactive'],
+      default: 'active',
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
     refreshToken: {
       type: String,

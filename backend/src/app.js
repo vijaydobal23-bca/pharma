@@ -2,6 +2,15 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth.routes');
+const medicineRoutes = require('./routes/medicine.routes');
+const categoryRoutes = require('./routes/category.routes');
+const supplierRoutes = require('./routes/supplier.routes');
+const inventoryRoutes = require('./routes/inventory.routes');
+const billingRoutes = require('./routes/billing.routes');
+const customerRoutes = require('./routes/customer.routes');
+const purchaseRoutes = require('./routes/purchase.routes');
+const employeeRoutes = require('./routes/employee.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
 
 const app = express();
 
@@ -42,6 +51,15 @@ app.get('/api/health', (req, res) => {
 
 // Mount Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/medicines', medicineRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/suppliers', supplierRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/billing', billingRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/purchases', purchaseRoutes);
+app.use('/api/employees', employeeRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // 404 Handler for undefined routes
 app.use((req, res) => {
